@@ -6,7 +6,9 @@ const passport = require("passport");
 // Load User Model
 const User = require("../../models/USer");
 const keys = require("../../config/keys");
-
+// Load input Validation
+const validateReisterInput = require("../../validation/registration")
+const validateLoginInput = require("../../validation/login")
 // GET api/users/test
 // test user route
 // public
@@ -16,6 +18,11 @@ router.get("/test", (req, res) => res.json({ msg: "users works" }));
 // register new route
 // public
 router.post("/register", (req, res) => {
+  const {errors, isValid } = validateReisterInput(req.body);
+// Check Validation
+  if(!isValid) { 
+    return res.status(400).json(errors);
+  }
   // find if email exist with mongoose
   User.findOne({ email: req.body.email }).then(user => {
     if (user) {
@@ -46,6 +53,12 @@ router.post("/register", (req, res) => {
 // Login user / returning JWT
 // public
 router.post("/login", (req, res) => {
+  const { errors, isValid } = validateLoginInput(req.body);
+  // Check Validation
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
+
   const email = req.body.email;
   const password = req.body.password;
 
@@ -53,7 +66,8 @@ router.post("/login", (req, res) => {
   User.findOne({ email }).then(user => {
     //Check for user
     if (!user) {
-      return res.status(404).json({ email: "Email not Found" });
+      errors.email = 'User not found';
+      return res.status(404).json(errors);
     }
     // Check Password
     bcrypt.compare(password, user.password).then(matching => {
@@ -77,7 +91,8 @@ router.post("/login", (req, res) => {
           }
         );
       } else {
-        return res.status(400).json({ password: "Incorrect Password" });
+        errors.password = 'Incorrect Password';
+        return res.status(400).json(errors);
       }
     });
   });
